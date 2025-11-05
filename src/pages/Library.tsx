@@ -60,20 +60,6 @@ export default function Library() {
     }
   }
 
-  // Save edit
-  async function handleSaveEdit() {
-    if (!editing) return;
-    try {
-      const updated = await updateLibraryItem(editing.id!, editing);
-      setItems(prev =>
-        prev.map(item => (item.id === updated.id ? updated : item))
-      );
-      setEditing(null);
-      setToast({ message: "Changes saved", type: "success" });
-    } catch {
-      setToast({ message: "Failed to update", type: "error" });
-    }
-  }
 
   const filtered = filter === "all" ? items : items.filter(i => i.type === filter);
 

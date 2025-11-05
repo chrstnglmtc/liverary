@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, signup } from "../api/auth";
-import { setCurrentUser, getCurrentUser, logout as logoutUser } from "../api/authStore";
+import { setCurrentUser, getCurrentUser} from "../api/authStore";
 import Toast from "../components/Toast";
 
 export default function Home() {
@@ -49,12 +49,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    logoutUser();
-    sessionStorage.removeItem("authUser");
-    navigate("/");
   };
 
   return (

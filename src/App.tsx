@@ -1,15 +1,32 @@
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Library from "./pages/Library";
+import ProtectedRoute from "./pages/ProtectedRoute";
+import Profile from "./pages/Profile";
 
-export default function App() {
+function App() {
   return (
-    <div className="p-10 space-y-5">
-      <button className="btn btn-primary">DaisyUI Button</button>
-      <div className="card w-96 bg-base-200 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">DaisyUI Card</h2>
-          <p>🎉 If this has color, DaisyUI is working!</p>
-        </div>
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Home />} />
+
+        {/* Protected */}
+        <Route
+          path="/library"
+          element={
+            <ProtectedRoute>
+              <Library />
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all → redirect to homepage */}
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;

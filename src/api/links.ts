@@ -1,14 +1,13 @@
 import type { LibraryItem } from "../types/library";
 
 export function detectType(link: string): LibraryItem["type"] {
-  const lower = link.toLowerCase();
-
-  if (/(youtube\.com|youtu\.be|tiktok\.com)/.test(lower)) return "video";
-  if (/(webtoon|mto\.to|bato\.to)/.test(lower)) return "webtoon";
-  if (/(spotify\.com|soundcloud\.com|\.mp3|\.wav)/.test(lower)) return "music";
+  if (link.match(/(youtube\.com|youtu\.be|tiktok\.com)/)) return "video";
+  if (link.match(/(webtoon|mto|bato)/)) return "webtoon";
+  if (link.match(/(mp3|wav|spotify|soundcloud)/)) return "music";
   if (
-    /(pdf|epub|book|goodreads\.com|kindle|wattpad\.com|archiveofourown\.org|asianfanfics\.com)/
-      .test(lower)
+    link.match(
+      /(pdf|epub|book|goodreads|kindle|wattpad|archiveofourown|asianfanfics)/
+    )
   )
     return "book";
   return "other";
@@ -18,28 +17,24 @@ export async function processLink(link: string): Promise<LibraryItem> {
   const type = detectType(link);
 
   try {
+    let item: LibraryItem;
+
     if (type === "video") {
       if (link.includes("youtube") || link.includes("youtu.be")) {
-        return await fetchYouTubeMetadata(link);
+        item = await fetchYouTubeMetadata(link);
+      } else if (link.includes("tiktok")) {
+        item = await fetchOpenGraphMetadata(link, type);
+      } else {
+        item = await fetchOpenGraphMetadata(link, type);
       }
-      if (link.includes("tiktok")) {
-        return await fetchOpenGraphMetadata(link, type);
-      }
+    } else {
+      item = await fetchOpenGraphMetadata(link, type);
     }
-
-    if (type === "webtoon") {
-      return await fetchOpenGraphMetadata(link, type);
-    }
-
-    if (type === "book") {
-      return await fetchOpenGraphMetadata(link, type);
-    }
-
-    if (type === "music") {
-      return await fetchOpenGraphMetadata(link, type);
-    }
-
-    return await fetchOpenGraphMetadata(link, type);
+    
+    return {
+      ...item,
+      metadata: { thumbnail: item.thumbnail },
+    };
   } catch (err) {
     console.error("Metadata fetch failed:", err);
     return {
@@ -48,6 +43,8 @@ export async function processLink(link: string): Promise<LibraryItem> {
       title: link,
       author: "Unknown",
       link,
+      thumbnail: "",
+      metadata: { thumbnail: "" },
     };
   }
 }
@@ -93,7 +90,7 @@ async function fetchOpenGraphMetadata(
     type,
     title: title || url,
     author: siteName || "Unknown",
-    thumbnail: image,
+    thumbnail: image || "",
     link: url,
   };
 }

@@ -1,105 +1,161 @@
-import { useEffect, useState } from "react";
-import MainLayout from "../layout/MainLayout";
-import FilterTabs from "../components/FilterTabs";
-import ItemCard from "../components/ItemCard";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { login, signup } from "../api/auth";
+import { setCurrentUser, getCurrentUser, logout as logoutUser } from "../api/authStore";
 import Toast from "../components/Toast";
-import { processLink } from "../api/links";
-import { addLibraryItem, getLibraryItems } from "../api/library";
-import type { LibraryItem } from "../types/library";
 
 export default function Home() {
-  const [filter, setFilter] = useState("all");
-  const [items, setItems] = useState<LibraryItem[]>([]);
-  const [newLink, setNewLink] = useState("");
+  const navigate = useNavigate();
+
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type?: "info" | "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
 
-  // ✅ Load all items from Xano on mount
+  // Redirect if already logged in
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await getLibraryItems();
-        setItems(data);
-      } catch (err) {
-        console.error(err);
-        setToast({ message: "❌ Failed to load library items", type: "error" });
-      }
-    })();
-  }, []);
+    const user = getCurrentUser() || JSON.parse(sessionStorage.getItem("authUser") || "null");
+    if (user?.token) {
+      navigate("/library");
+    }
+  }, [navigate]);
 
-  // ✅ Add a new link and save it to Xano
-  async function handleAddLink(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLink.trim()) return;
+    setError("");
+    setLoading(true);
 
     try {
-      setLoading(true);
+      let user;
 
-      // 1️⃣ Process metadata from the link (title, type, etc.)
-      const item = await processLink(newLink);
+      if (isLogin) {
+        user = await login(email, password);
+        setToast({ message: `Welcome back, ${user.display_name || user.email}!`, type: "success" });
+      } else {
+        user = await signup({ email, password, display_name: fullName });
+        setToast({ message: `Account created! Welcome, ${user.display_name || user.email}`, type: "success" });
+        setIsLogin(true);
+      }
 
-      // 2️⃣ Save the item to your Xano API
-      const saved = await addLibraryItem(item);
-
-      // 3️⃣ Update UI
-      setItems(prev => [saved, ...prev]);
-      setNewLink("");
-      setToast({ message: "✅ Saved to your library!", type: "success" });
-    } catch (err) {
-      console.error(err);
-      setToast({ message: "❌ Failed to save item", type: "error" });
+      setCurrentUser(user);
+      sessionStorage.setItem("authUser", JSON.stringify(user));
+      navigate("/library");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+      setToast({ message: err.message || "Something went wrong", type: "error" });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  const filtered = filter === "all" ? items : items.filter(i => i.type === filter);
+  const handleLogout = () => {
+    logoutUser();
+    sessionStorage.removeItem("authUser");
+    navigate("/");
+  };
 
   return (
-    <MainLayout>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      {/* Add link input */}
-      <form
-        onSubmit={handleAddLink}
-        className="p-6 flex gap-2 justify-center items-center"
-      >
-        <input
-          type="url"
-          placeholder="Paste a link (YouTube, Webtoon, etc.)"
-          value={newLink}
-          onChange={e => setNewLink(e.target.value)}
-          className="input input-bordered w-full max-w-lg"
-          required
-        />
-        <button
-          type="submit"
-          className={`btn btn-primary ${loading ? "loading" : ""}`}
-          disabled={loading}
-        >
-          {loading ? "Adding..." : "Add"}
-        </button>
-      </form>
-
-      <FilterTabs filter={filter} onChange={setFilter} />
-
-      {/* Library items */}
-      <div className="p-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.length === 0 ? (
-          <p className="text-center text-gray-500 col-span-full">
-            No items yet. Add your first link above!
+    <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
+      <div className="card w-full max-w-md bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title justify-center text-2xl font-bold">
+            {isLogin ? "Welcome" : "Create an Account"}
+          </h2>
+          <p className="text-center text-sm text-base-content/60">
+            {isLogin ? "Login to continue to your library" : "Sign up to get started"}
           </p>
-        ) : (
-          filtered.map(item => <ItemCard key={item.id} item={item} />)
-        )}
+
+          {loading && (
+            <div className="text-center my-2">
+              <span className="loading loading-spinner loading-md"></span>
+            </div>
+          )}
+
+          {error && <p className="text-center text-red-500 text-sm mt-2">{error}</p>}
+
+          <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+            {!isLogin && (
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Full Name</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  className="input input-bordered w-full"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Email</span>
+              </label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                className="input input-bordered w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                className="input input-bordered w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {isLogin && (
+                <label className="label">
+                  <a href="#" className="label-text-alt link link-hover">
+                    Forgot password?
+                  </a>
+                </label>
+              )}
+            </div>
+
+            <div className="form-control mt-4">
+              <button type="submit" className="btn btn-primary w-full">
+                {isLogin ? "Login" : "Sign Up"}
+              </button>
+            </div>
+          </form>
+
+          <p className="text-center text-sm mt-3">
+            {isLogin ? (
+              <>
+                Don’t have an account?{" "}
+                <button type="button" className="link link-primary" onClick={() => setIsLogin(false)}>
+                  Sign up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button type="button" className="link link-primary" onClick={() => setIsLogin(true)}>
+                  Login
+                </button>
+              </>
+            )}
+          </p>
+        </div>
       </div>
-    </MainLayout>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
   );
 }

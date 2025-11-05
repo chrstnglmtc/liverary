@@ -9,4 +9,5 @@ export interface LibraryItem {
   current_chapter?: number;
   metadata?: Record<string, any>;
   date_added?: string;
+  thumbnail?:string;
 }

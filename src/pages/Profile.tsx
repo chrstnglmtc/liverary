@@ -145,13 +145,11 @@ export default function Profile() {
 
         {filteredItems.map((item) => (
           <li key={item.id} className="list-row items-center gap-2">
-            {item.thumbnail && (
-              <img
-                src={item.thumbnail}
-                alt={item.title}
-                className="w-12 h-12 rounded object-cover"
-              />
-            )}
+            <img
+              src={item.thumbnail || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMDAwMDAwIi8+PC9zdmc+"}
+              alt={item.title}
+              className="w-12 h-12 rounded object-cover"
+            />
             <div className="flex-1">
               <div className="font-bold">{item.title}</div>
               <div className="text-xs uppercase font-semibold opacity-60">{item.type}</div>

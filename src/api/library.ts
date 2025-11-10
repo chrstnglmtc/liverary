@@ -1,11 +1,11 @@
 import type { LibraryItem } from "../types/library";
-import { getCurrentUser } from "./authStore";
+import { getCurrentUser, handleSessionExpired } from "./authStore";
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
-// Helper to get authToken from session
+// ✅ Helper: Get auth headers (with error handling)
 function getAuthHeaders() {
-  const user = JSON.parse(sessionStorage.getItem("authUser") || "null");
+  const user = getCurrentUser();
   const token = user?.token;
   if (!token) throw new Error("Not authenticated");
   return {
@@ -14,10 +14,24 @@ function getAuthHeaders() {
   };
 }
 
+// ✅ Helper: Handle fetch with session check
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const res = await fetch(url, options);
+
+  // 🔒 If session expired or unauthorized → logout + redirect
+  if (res.status === 401 || res.status === 403) {
+    handleSessionExpired();
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  return res;
+}
+
 // ✅ Add new item
 export async function addLibraryItem(item: LibraryItem): Promise<LibraryItem> {
   const user = getCurrentUser();
   if (!user) throw new Error("User not logged in");
+
   const thumbnail = item.thumbnail || item.metadata?.thumbnail || "";
 
   const payload = {
@@ -33,32 +47,32 @@ export async function addLibraryItem(item: LibraryItem): Promise<LibraryItem> {
     date_added: new Date().toISOString(),
   };
 
-  const response = await fetch(`${API_BASE}/library`, {
+  const res = await fetchWithAuth(`${API_BASE}/library`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) throw new Error("Failed to save item");
-  return response.json();
+  if (!res.ok) throw new Error("Failed to save item");
+  return res.json();
 }
 
 // ✅ Fetch all items for the logged-in user
 export async function getLibraryItems(): Promise<LibraryItem[]> {
-  const response = await fetch(`${API_BASE}/my_library`, {
+  const res = await fetchWithAuth(`${API_BASE}/my_library`, {
     headers: getAuthHeaders(),
   });
-  if (!response.ok) throw new Error("Failed to load items");
-  return response.json();
+  if (!res.ok) throw new Error("Failed to load items");
+  return res.json();
 }
 
 // ✅ Delete item
 export async function deleteLibraryItem(id: string | number): Promise<void> {
-  const response = await fetch(`${API_BASE}/library/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/library/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
-  if (!response.ok) throw new Error("Failed to delete item");
+  if (!res.ok) throw new Error("Failed to delete item");
 }
 
 // ✅ Update item
@@ -74,12 +88,12 @@ export async function updateLibraryItem(
     metadata: { ...updates.metadata, thumbnail },
   };
 
-  const response = await fetch(`${API_BASE}/library/${id}`, {
+  const res = await fetchWithAuth(`${API_BASE}/library/${id}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) throw new Error("Failed to update item");
-  return response.json();
+  if (!res.ok) throw new Error("Failed to update item");
+  return res.json();
 }

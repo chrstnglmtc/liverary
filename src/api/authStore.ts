@@ -19,3 +19,8 @@ export function logout() {
   currentUser = null;
   localStorage.removeItem("currentUser");
 }
+
+export function handleSessionExpired() {
+  logout();
+  window.location.href = "/";
+}

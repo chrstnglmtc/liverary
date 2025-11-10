@@ -1,13 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { logout as logoutUser, getCurrentUser } from "../api/authStore";
 import { useEffect, useState } from "react";
+import logo from "../assets/logo.svg"; // ✅ import your logo
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const currentUser = getCurrentUser() || JSON.parse(sessionStorage.getItem("authUser") || "null");
+    const currentUser =
+      getCurrentUser() || JSON.parse(sessionStorage.getItem("authUser") || "null");
     setUser(currentUser);
   }, []);
 
@@ -24,11 +26,21 @@ export default function Navbar() {
   const goToHomepage = () => {
     navigate("/library");
   };
+
   return (
     <div className="navbar bg-base-100 shadow-md px-6">
+      {/* Left side: Logo */}
       <div className="flex-1">
-        <a className="text-xl font-bold">Liverary</a>
+        <button onClick={goToHomepage} className="flex items-center gap-2">
+        <img
+          src={logo}
+          alt="LIVErary logo"
+          className="h-8 w-auto transition-all filter dark:invert"
+        />
+        </button>
       </div>
+
+      {/* Right side: Menu */}
       {user && (
         <div className="flex-none">
           <ul className="menu menu-horizontal px-1">

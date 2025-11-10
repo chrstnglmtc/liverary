@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, signup } from "../api/auth";
-import { setCurrentUser, getCurrentUser} from "../api/authStore";
+import { setCurrentUser, getCurrentUser } from "../api/authStore";
 import Toast from "../components/Toast";
+import logo from "../assets/logo.svg";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
 
-  // Redirect if already logged in
   useEffect(() => {
     const user = getCurrentUser() || JSON.parse(sessionStorage.getItem("authUser") || "null");
     if (user?.token) {
@@ -55,6 +55,11 @@ export default function Home() {
     <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
+          {/* Logo */}
+          <div className="flex justify-center mb-4">
+            <img src={logo} alt="LIVErary logo" className="h-12 w-auto filter dark:invert" />
+          </div>
+
           <h2 className="card-title justify-center text-2xl font-bold">
             {isLogin ? "Welcome" : "Create an Account"}
           </h2>
